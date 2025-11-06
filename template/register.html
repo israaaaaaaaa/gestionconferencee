@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>creer un compte participant</h2>
+<form method="POST">
+    {% csrf_token %}
+    {{form.as_p}}
+    <button type="submit">s'inscrire</button>
+</form>
+{% endblock %}
