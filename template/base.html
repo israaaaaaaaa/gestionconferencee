@@ -6,10 +6,11 @@
             <a>contact</a>
             {% if user.is_authenticated %}
             <a>{{user.username}}</a>
-            <a>logout</a>
+             <a href="{% url 'logout' %}">logout</a>
             {% else %}
             <a href="{% url 'login' %}">login</a>
             <a href="{% url 'register' %}">inscription</a>
+           
             {% endif %}
         </nav>
         <div>

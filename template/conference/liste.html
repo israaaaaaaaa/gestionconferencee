@@ -16,8 +16,10 @@
         <td>{{c.description}}</td>
         <td>
             <a href="{% url 'conference_details' c.pk %}">details</a>
+            {% if user.is_authenticated and user.role=="committee" %}
             <a href="{% url 'conference_edit' c.pk %}">modifier</a>
             <a href="{% url 'conference_delete' c.pk %}">delete</a>
+            {% endif %}
 
 
         </td>
