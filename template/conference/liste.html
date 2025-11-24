@@ -1,30 +1,48 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>la liste des conferences</h2>
-<table>
-    <tr>
-        <td>title</td>
-        <td>location</td>
-        <td>description</td>
+<h2>La liste des conférences</h2>
 
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Titre</th>
+            <th>Lieu</th>
+            <th>Description</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in liste %}
+        <tr>
+            <td>{{ c.name }}</td>
+            <td>{{ c.location }}</td>
+            <td>{{ c.description }}</td>
+            <td>
+                <!-- CORRIGÉ ICI -->
+                <a href="{% url 'conference_detail' c.pk %}" class="btn btn-sm btn-info">Détails</a>
 
-    </tr>
-{% for c in liste %}
- <tr>
-        <td>{{c.name}}</td>
-        <td>{{c.location}}</td>
-        <td>{{c.description}}</td>
-        <td>
-            <a href="{% url 'conference_details' c.pk %}">details</a>
-            {% if user.is_authenticated and user.role=="committee" %}
-            <a href="{% url 'conference_edit' c.pk %}">modifier</a>
-            <a href="{% url 'conference_delete' c.pk %}">delete</a>
-            {% endif %}
-
-
-        </td>
-
-    </tr>
-{% endfor %}
+                {% if user.is_authenticated and user.role == "committee" %}
+                    <a href="{% url 'conference_edit' c.pk %}" class="btn btn-sm btn-warning">Modifier</a>
+                    <a href="{% url 'conference_delete' c.pk %}" class="btn btn-sm btn-danger">Supprimer</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4" class="text-center">Aucune conférence disponible.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
+
+<!-- Bouton d'ajout -->
+{% if user.is_authenticated and user.role == "committee" %}
+    <a href="{% url 'conference_add' %}" class="btn btn-success">+ Ajouter une conférence</a>
+{% endif %}
+
+<!-- Lien vers mes soumissions -->
+{% if user.is_authenticated %}
+    <a href="{% url 'submission_list' %}" class="btn btn-primary ms-3">Mes Soumissions</a>
+{% endif %}
+
 {% endblock %}

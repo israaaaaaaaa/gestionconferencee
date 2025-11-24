@@ -1,5 +1,5 @@
 """
-URL configuration for gestionconference project.
+URL configuration for GestionConference project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.2/topics/http/urls/
@@ -20,6 +20,8 @@ from django.urls import path,include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('conference/',include('ConferenceApp.urls')),
-    path('user/',include("UserApp.urls"))
+    path('conference/',include("ConferenceApp.urls")),
+    path('user/',include("UserApp.urls")),
+    path('api/',include("sessionAppApi.urls")),
+    path('security/',include("securityConfigApp.urls"))
 ]

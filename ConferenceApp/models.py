@@ -1,94 +1,82 @@
+# ConferenceApp/models.py
+
 from django.db import models
-from django.core.validators import RegexValidator, MinLengthValidator, FileExtensionValidator
 from django.core.exceptions import ValidationError
-from datetime import date
-import uuid
+from django.core.validators import FileExtensionValidator
+from django.utils import timezone
 
-# -------------------- Validators --------------------
 
-title_validator = RegexValidator(
-    regex=r'^[A-Za-zÀ-ÿ\s]+$',
-    message="The conference title must contain only letters and spaces."
-)
-
-def validate_dates(start_date, end_date):
-    if start_date >= end_date:
-        raise ValidationError("The start date must be before the end date.")
-
-def generate_submission_id():
-    return "SUB" + uuid.uuid4().hex[:8].upper()
-
-def validate_keywords(value):
-    words = [w.strip() for w in value.split(",") if w.strip()]
-    if len(words) > 10:
-        raise ValidationError("You can specify a maximum of 10 keywords.")
-
-# -------------------- Conference --------------------
 class Conference(models.Model):
     conference_id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=255, validators=[title_validator])
-    description = models.TextField(validators=[MinLengthValidator(30)])
+    name = models.CharField(max_length=255)
+    description = models.TextField()
     location = models.CharField(max_length=255)
-
     THEME_CHOICES = [
-        ("CS and IA", "Computer Science and IA"),
-        ("SS", "Social Science"),
-        ("SE", "Science and Engineering"),
+        ("cs_ai", "Computer Science & Artificial Intelligence"),
+        ("sci_eng", "Science & Engineering"),
+        ("social_edu", "Social Sciences & Education"),
+        ("interdisciplinary", "Interdisciplinary Themes"),
     ]
-    theme = models.CharField(max_length=255, choices=THEME_CHOICES)
+    theme = models.CharField(max_length=50, choices=THEME_CHOICES)
     start_date = models.DateField()
     end_date = models.DateField()
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def clean(self):
-        validate_dates(self.start_date, self.end_date)
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            raise ValidationError("La date de début doit être antérieure à la date de fin.")
 
     def __str__(self):
         return self.name
 
 
-# -------------------- Submission --------------------
-class Submission(models.Model):
-    submission_id = models.CharField(primary_key=True, max_length=20, editable=False)
-    user = models.ForeignKey("UserApp.User", on_delete=models.CASCADE, related_name="submissions")
-    conference = models.ForeignKey("ConferenceApp.Conference", on_delete=models.CASCADE, related_name="submissions")
+class submission(models.Model):
+    submission_id = models.AutoField(primary_key=True)  # ← ENTIER, AUTO-INCRÉMENTÉ
+
+    def validate_keywords(value):
+        keywords = [k.strip() for k in value.split(',') if k.strip()]
+        if len(keywords) > 10:
+            raise ValidationError("Maximum 10 mots-clés autorisés")
+
+    user = models.ForeignKey(
+        "UserApp.User",
+        on_delete=models.CASCADE,
+        related_name="conference_submissions"
+    )
+    conference = models.ForeignKey(
+        Conference,
+        on_delete=models.CASCADE,
+        related_name="submissions_list"
+    )
     title = models.CharField(max_length=255)
     abstract = models.TextField()
-    keywords = models.TextField(validators=[validate_keywords])
-    paper = models.FileField(upload_to="papers/", validators=[FileExtensionValidator(["pdf"])])
-
+    keywords = models.CharField(
+        max_length=500,
+        validators=[validate_keywords],
+        help_text="Séparez par des virgules (max 10)"
+    )
     STATUS_CHOICES = [
         ("submitted", "Submitted"),
         ("under review", "Under Review"),
         ("accepted", "Accepted"),
         ("rejected", "Rejected"),
     ]
-    status = models.CharField(max_length=255, choices=STATUS_CHOICES)
-    payed = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="submitted")
+    paper = models.FileField(
+        upload_to='submissions/',
+        validators=[FileExtensionValidator(['pdf'])],
+        null=True, blank=True
+    )
     submission_date = models.DateField(auto_now_add=True)
+    payed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def save(self, *args, **kwargs):
-        if not self.submission_id:
-            self.submission_id = generate_submission_id()
-        super().save(*args, **kwargs)
+    
 
-    def clean(self):
-        # Conference must be in the future
-        if self.conference and self.conference.start_date <= date.today():
-            raise ValidationError("Submissions are only allowed for upcoming conferences.")
-
-        # User can submit max 3 per day
-        if self.user:
-            same_day_count = Submission.objects.filter(
-                user=self.user,
-                submission_date=date.today()
-            ).count()
-            if same_day_count >= 3:
-                raise ValidationError("You can only submit up to 3 submissions per day.")
+    def can_be_modified(self):
+        return self.status in ['submitted', 'under review']
 
     def __str__(self):
-        return self.title
+        return f"{self.title} - {self.user.username}"
